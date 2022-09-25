@@ -222,15 +222,10 @@ Resources:
               zip_archive.writestr('build_new_image.sh', build_image_body)
               zip_archive.writestr('first_run_setup.sh', first_run_setup_body)
               zip_archive.close()
-              zip_file = open('/tmp/build.zip', 'r')
           
               ## Put the archive in S3
               try:
-                  s3.put_object(
-                  Body= zip_file.read(),
-                  Bucket= s3TargetBucket,
-                  Key= "build.zip",
-                  )
+                  s3.upload_file('/tmp/build.zip', s3TargetBucket, 'build.zip')
                   response['Data'] = {
                       's3Success': 'true'
                   }
@@ -356,9 +351,7 @@ Resources:
           - Effect: Allow
             Resource: !Sub arn:aws:s3:::${codebuildSourceBucket}/* 
             Action:
-              - s3:GetObject
-              - s3:PutObject
-              - s3:GetObjectVersion
+              - s3:*
 
   codeBuildServiceRole:
     Type: AWS::IAM::Role
@@ -437,7 +430,7 @@ Resources:
       stackName: !Ref AWS::StackName
       s3TargetBucket: !Ref codebuildSourceBucket
       buildspec_body: |
-          #force function to run by changing this: 0
+          #force function to run by changing this: 8
           version: 0.2
           ## Builds a custom Raspbian ARM image from verified Raspbian download source.
           ## The full run takes roughly 20 minutes
