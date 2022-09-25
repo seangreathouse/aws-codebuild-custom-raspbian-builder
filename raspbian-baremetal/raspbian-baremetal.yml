@@ -161,13 +161,12 @@ Resources:
       Role: !GetAtt lambdaExecutionRole.Arn
       Code:
         ZipFile: |
-          from __future__ import print_function
           import boto3
           import os
           import zipfile
-          import httplib
+          import http.client
           import uuid
-          import urlparse
+          import urllib.parse
           import json
           
           print('Loading function')
@@ -183,9 +182,9 @@ Resources:
               if reason is not None:
                   response['Reason'] = reason
               if 'ResponseURL' in request and request['ResponseURL']:
-                  url = urlparse.urlparse(request['ResponseURL'])
+                  url = urllib.parse.urlparse(request['ResponseURL'])
                   body = json.dumps(response)
-                  https = httplib.HTTPSConnection(url.hostname)
+                  https = http.client.HTTPSConnection(url.hostname)
                   https.request('PUT', url.path+'?'+url.query, body)
               return response
           
@@ -205,7 +204,6 @@ Resources:
               # There is nothing to do for a delete request
               if event['RequestType'] == 'Delete':
                   return send_response(event, response)
-
               ## Get the S3 Bucket passed in from CFN
               s3TargetBucket=event['ResourceProperties']['s3TargetBucket']
               ## Get the file contents to put in S3 from CFN
@@ -215,7 +213,6 @@ Resources:
               dockerfile_armv6_body_include=event['ResourceProperties']['dockerfile_armv6_body_include']
               dockerfile_armv7_body_include=event['ResourceProperties']['dockerfile_armv7_body_include']
               first_run_setup_body=event['ResourceProperties']['first_run_setup_body']
-
               ## Build the zip archive
               zip_archive = zipfile.ZipFile('/tmp/build.zip', 'w')
               zip_archive.writestr('buildspec.yml', buildspec_body)
@@ -238,14 +235,13 @@ Resources:
                       's3Success': 'true'
                   }
                   response['Reason'] = 'build.zip added to S3'
-
               except Exception as E:
                 response['Reason'] = 'Event Failed - See CloudWatch logs for the Lamba function backing the custom resource for details'
                 ## Un-comment the line blow to send a true failure to CFN
                 ## will cause a stack rollback on failure and can leave the stack in a state that requires deletion.
                 #response['Status'] = 'FAILED'
               # Log it!
-              print('Response Text: ' + str(response))
+              print(('Response Text: ' + str(response)))
               return send_response(event, response)
 
   codeBuildProject:
